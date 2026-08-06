@@ -4,14 +4,17 @@ import '../theme/app_colors.dart';
 import '../widgets/cyber_button.dart';
 import '../widgets/map_preview.dart';
 
-class SetDistanceScreen extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/run_provider.dart';
+
+class SetDistanceScreen extends ConsumerStatefulWidget {
   const SetDistanceScreen({super.key});
 
   @override
-  State<SetDistanceScreen> createState() => _SetDistanceScreenState();
+  ConsumerState<SetDistanceScreen> createState() => _SetDistanceScreenState();
 }
 
-class _SetDistanceScreenState extends State<SetDistanceScreen> {
+class _SetDistanceScreenState extends ConsumerState<SetDistanceScreen> {
   double _distance = 5.0;
 
   @override
@@ -197,6 +200,7 @@ class _SetDistanceScreenState extends State<SetDistanceScreen> {
                 text: 'START RUN',
                 isPrimary: true,
                 onPressed: () {
+                  ref.read(runProvider.notifier).startRun(targetDistance: _distance);
                   Navigator.pushReplacementNamed(context, '/tracking');
                 },
               ),

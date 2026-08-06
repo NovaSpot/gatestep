@@ -3,11 +3,25 @@ import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_colors.dart';
 import '../widgets/cyber_button.dart';
 
-class RankUpScreen extends StatelessWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/hunter_provider.dart';
+import '../providers/run_provider.dart';
+
+class RankUpScreen extends ConsumerWidget {
   const RankUpScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final runSession = ref.watch(runProvider);
+    final hunter = ref.watch(hunterProvider);
+    
+    int xpEarned = (runSession.currentDistance * 1000).toInt();
+    
+    final int hours = runSession.elapsedSeconds ~/ 3600;
+    final int minutes = (runSession.elapsedSeconds % 3600) ~/ 60;
+    final int seconds = runSession.elapsedSeconds % 60;
+    String timeString = '${hours > 0 ? '$hours:' : ''}${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -145,7 +159,7 @@ class RankUpScreen extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                'BAKI HANMA',
+                                hunter.codename,
                                 style: GoogleFonts.shareTechMono(
                                   color: AppColors.textPrimary,
                                   fontSize: 24,
@@ -163,7 +177,7 @@ class RankUpScreen extends StatelessWidget {
                           child: Column(
                             children: [
                               Text(
-                                'S',
+                                hunter.rank,
                                 style: GoogleFonts.shareTechMono(
                                   color: AppColors.sTierGold,
                                   fontSize: 36,
@@ -219,11 +233,9 @@ class RankUpScreen extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 24),
-                        _buildCalculationRow('Base XP = Distance x 10', '4,500', AppColors.sTierGold),
+                        _buildCalculationRow('Base XP = Distance x 1000', '$xpEarned', AppColors.sTierGold),
                         const SizedBox(height: 12),
-                        _buildCalculationRow('x Pace Factor (1.2x)', '+900', AppColors.sTierGold),
-                        const SizedBox(height: 24),
-                        _buildCalculationRow('Total XP Yield', '5,400 XP', AppColors.primaryCyan, isTotal: true),
+                        _buildCalculationRow('Total XP Yield', '$xpEarned XP', AppColors.primaryCyan, isTotal: true),
                       ],
                     ),
                   ),
@@ -243,7 +255,7 @@ class RankUpScreen extends StatelessWidget {
                             children: [
                               Text('DISTANCE', style: GoogleFonts.shareTechMono(color: AppColors.textSecondary, fontSize: 10, letterSpacing: 1.5)),
                               const SizedBox(height: 4),
-                              Text('5.0 KM', style: GoogleFonts.shareTechMono(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
+                              Text('${runSession.currentDistance.toStringAsFixed(2)} KM', style: GoogleFonts.shareTechMono(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
                             ],
                           ),
                         ),
@@ -261,7 +273,7 @@ class RankUpScreen extends StatelessWidget {
                             children: [
                               Text('TIME', style: GoogleFonts.shareTechMono(color: AppColors.textSecondary, fontSize: 10, letterSpacing: 1.5)),
                               const SizedBox(height: 4),
-                              Text('30:15', style: GoogleFonts.shareTechMono(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
+                              Text(timeString, style: GoogleFonts.shareTechMono(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
                             ],
                           ),
                         ),
@@ -273,6 +285,10 @@ class RankUpScreen extends StatelessWidget {
                     text: 'GO TO HOME',
                     isSuccess: true,
                     onPressed: () {
+                      ref.read(hunterProvider.notifier).addRunStats(
+                        runSession.currentDistance, 
+                        runSession.elapsedSeconds
+                      );
                       Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
                     },
                   ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'theme/app_theme.dart';
 import 'screens/splash_screen.dart';
 import 'screens/start_screen.dart';
@@ -16,7 +17,7 @@ void main() {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  runApp(const GateStepApp());
+  runApp(const ProviderScope(child: GateStepApp()));
 }
 
 class GateStepApp extends StatelessWidget {

@@ -5,11 +5,31 @@ import '../widgets/cyber_button.dart';
 import '../widgets/map_preview.dart';
 import '../widgets/timer_display.dart';
 
-class TrackingScreen extends StatelessWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/run_provider.dart';
+
+class TrackingScreen extends ConsumerWidget {
   const TrackingScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final runSession = ref.watch(runProvider);
+    
+    // Check completion condition
+    if (runSession.isActive && runSession.currentDistance >= runSession.targetDistance) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(runProvider.notifier).stopRun();
+        Navigator.pushReplacementNamed(context, '/runComplete');
+      });
+    }
+
+    final int hours = runSession.elapsedSeconds ~/ 3600;
+    final int minutes = (runSession.elapsedSeconds % 3600) ~/ 60;
+    final int seconds = runSession.elapsedSeconds % 60;
+    
+    final paceMins = (runSession.currentPace ~/ 60).toString().padLeft(2, '0');
+    final paceSecs = (runSession.currentPace % 60).toInt().toString().padLeft(2, '0');
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -51,10 +71,10 @@ class TrackingScreen extends StatelessWidget {
               ),
               const SizedBox(height: 32),
               // Timer
-              const TimerDisplay(
-                hours: '00',
-                minutes: '14',
-                seconds: '32',
+              TimerDisplay(
+                hours: hours.toString().padLeft(2, '0'),
+                minutes: minutes.toString().padLeft(2, '0'),
+                seconds: seconds.toString().padLeft(2, '0'),
               ),
               const SizedBox(height: 24),
               // Stats
@@ -84,7 +104,7 @@ class TrackingScreen extends StatelessWidget {
                           textBaseline: TextBaseline.alphabetic,
                           children: [
                             Text(
-                              '2.4',
+                              runSession.currentDistance.toStringAsFixed(2),
                               style: GoogleFonts.shareTechMono(
                                 color: AppColors.textPrimary,
                                 fontSize: 20,
@@ -92,7 +112,7 @@ class TrackingScreen extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              ' / 5.0 KM',
+                              ' / ${runSession.targetDistance.toStringAsFixed(1)} KM',
                               style: GoogleFonts.shareTechMono(
                                 color: AppColors.textSecondary,
                                 fontSize: 14,
@@ -113,7 +133,7 @@ class TrackingScreen extends StatelessWidget {
                       child: Row(
                         children: [
                           Expanded(
-                            flex: 48,
+                            flex: (runSession.currentDistance / runSession.targetDistance * 100).toInt().clamp(0, 100),
                             child: Container(
                               decoration: BoxDecoration(
                                 color: AppColors.secondaryCyan,
@@ -127,7 +147,7 @@ class TrackingScreen extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const Expanded(flex: 52, child: SizedBox()),
+                          Expanded(flex: (100 - (runSession.currentDistance / runSession.targetDistance * 100).toInt()).clamp(0, 100), child: const SizedBox()),
                         ],
                       ),
                     ),
@@ -155,7 +175,7 @@ class TrackingScreen extends StatelessWidget {
                             textBaseline: TextBaseline.alphabetic,
                             children: [
                               Text(
-                                '06:05',
+                                '$paceMins:$paceSecs',
                                 style: GoogleFonts.shareTechMono(
                                   color: AppColors.primaryCyan,
                                   fontSize: 24,
@@ -188,7 +208,8 @@ class TrackingScreen extends StatelessWidget {
                 text: '× CANCEL RUN',
                 isDanger: true,
                 onPressed: () {
-                  Navigator.pushReplacementNamed(context, '/runComplete');
+                  ref.read(runProvider.notifier).stopRun();
+                  Navigator.pushReplacementNamed(context, '/main');
                 },
               ),
             ],

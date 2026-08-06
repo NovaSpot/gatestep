@@ -5,11 +5,19 @@ import '../widgets/cyber_button.dart';
 import '../widgets/timer_display.dart';
 import '../widgets/map_preview.dart';
 
-class RunCompleteScreen extends StatelessWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/run_provider.dart';
+
+class RunCompleteScreen extends ConsumerWidget {
   const RunCompleteScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final runSession = ref.watch(runProvider);
+    final int hours = runSession.elapsedSeconds ~/ 3600;
+    final int minutes = (runSession.elapsedSeconds % 3600) ~/ 60;
+    final int seconds = runSession.elapsedSeconds % 60;
+    
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -31,10 +39,10 @@ class RunCompleteScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  const TimerDisplay(
-                    hours: '00',
-                    minutes: '14',
-                    seconds: '32',
+                  TimerDisplay(
+                    hours: hours.toString().padLeft(2, '0'),
+                    minutes: minutes.toString().padLeft(2, '0'),
+                    seconds: seconds.toString().padLeft(2, '0'),
                   ),
                 ],
               ),

@@ -2,12 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_colors.dart';
 import '../widgets/cyber_card.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/hunter_provider.dart';
 
-class HunterProfileScreen extends StatelessWidget {
+class HunterProfileScreen extends ConsumerWidget {
   const HunterProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hunter = ref.watch(hunterProvider);
+    double xpProgress = hunter.xp / hunter.xpToNextLevel;
+    int hours = hunter.totalTimeSeconds ~/ 3600;
+    
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -80,7 +86,7 @@ class HunterProfileScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'RONAN ABRAHAM',
+                    hunter.codename,
                     style: GoogleFonts.shareTechMono(
                       color: AppColors.textPrimary,
                       fontSize: 26,
@@ -102,7 +108,7 @@ class HunterProfileScreen extends StatelessWidget {
                     border: Border.all(color: AppColors.textSecondary.withAlpha(60)),
                   ),
                   child: Text(
-                    'RANK_E',
+                    'RANK_${hunter.rank}',
                     style: GoogleFonts.shareTechMono(
                       color: AppColors.textPrimary,
                       fontSize: 12,
@@ -125,7 +131,7 @@ class HunterProfileScreen extends StatelessWidget {
                         child: Row(
                           children: [
                             Expanded(
-                              flex: 65,
+                              flex: (xpProgress * 100).toInt().clamp(0, 100),
                               child: Container(
                                 decoration: BoxDecoration(
                                   color: AppColors.primaryCyan,
@@ -133,7 +139,7 @@ class HunterProfileScreen extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            const Expanded(flex: 35, child: SizedBox()),
+                            Expanded(flex: (100 - (xpProgress * 100).toInt()).clamp(0, 100), child: const SizedBox()),
                           ],
                         ),
                       ),
@@ -142,7 +148,7 @@ class HunterProfileScreen extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  'XP: 650/1000',
+                  'XP: ${hunter.xp}/${hunter.xpToNextLevel}',
                   style: GoogleFonts.shareTechMono(
                     color: AppColors.textSecondary,
                     fontSize: 10,
@@ -150,6 +156,27 @@ class HunterProfileScreen extends StatelessWidget {
                 ),
               ],
             ),
+            if (hunter.statPoints > 0) ...[
+              const SizedBox(height: 24),
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryCyan.withAlpha(20),
+                    border: Border.all(color: AppColors.primaryCyan),
+                  ),
+                  child: Text(
+                    'AVAILABLE STAT POINTS: ${hunter.statPoints}',
+                    style: GoogleFonts.shareTechMono(
+                      color: AppColors.primaryCyan,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 40),
             // Tactical Attributes
             Row(
@@ -170,17 +197,17 @@ class HunterProfileScreen extends StatelessWidget {
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: _buildAttributeCard('STR', '42.8', 'KM', Icons.fitness_center, 0.4)),
+                Expanded(child: _buildAttributeCard('STR', hunter.strength.toString(), 'LVL', Icons.fitness_center, ref, hunter.statPoints > 0)),
                 const SizedBox(width: 16),
-                Expanded(child: _buildAttributeCard('AGI', '05:42', 'PACE', Icons.speed, 0.7)),
+                Expanded(child: _buildAttributeCard('AGI', hunter.agility.toString(), 'LVL', Icons.speed, ref, hunter.statPoints > 0)),
               ],
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: _buildAttributeCard('DURATION', '184', 'HRS', Icons.timer_outlined, 0.5)),
+                Expanded(child: _buildAttributeCard('VIT', hunter.vitality.toString(), 'LVL', Icons.favorite_border, ref, hunter.statPoints > 0)),
                 const SizedBox(width: 16),
-                Expanded(child: _buildAttributeCard('SYNC', '24', 'GATES', Icons.hub_outlined, 0.8)),
+                Expanded(child: Container()), // Empty placeholder for symmetry
               ],
             ),
             const SizedBox(height: 40),
@@ -190,7 +217,7 @@ class HunterProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAttributeCard(String label, String value, String unit, IconData icon, double progress) {
+  Widget _buildAttributeCard(String label, String value, String unit, IconData icon, WidgetRef ref, bool canAllocate) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -217,51 +244,46 @@ class HunterProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                value,
-                style: GoogleFonts.shareTechMono(
-                  color: AppColors.textPrimary,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                unit,
-                style: GoogleFonts.shareTechMono(
-                  color: AppColors.textSecondary,
-                  fontSize: 10,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Container(
-            height: 3,
-            decoration: BoxDecoration(
-              color: AppColors.surfaceLight,
-              borderRadius: BorderRadius.circular(1.5),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  flex: (progress * 100).toInt(),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.textSecondary,
-                      borderRadius: BorderRadius.circular(1.5),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    value,
+                    style: GoogleFonts.shareTechMono(
+                      color: AppColors.textPrimary,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
+                  const SizedBox(width: 4),
+                  Text(
+                    unit,
+                    style: GoogleFonts.shareTechMono(
+                      color: AppColors.textSecondary,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ),
+              if (canAllocate)
+                InkWell(
+                  onTap: () {
+                    ref.read(hunterProvider.notifier).allocateStat(label);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryCyan.withAlpha(20),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: AppColors.primaryCyan),
+                    ),
+                    child: const Icon(Icons.add, color: AppColors.primaryCyan, size: 16),
+                  ),
                 ),
-                Expanded(
-                  flex: ((1 - progress) * 100).toInt(),
-                  child: const SizedBox(),
-                ),
-              ],
-            ),
+            ],
           ),
         ],
       ),
