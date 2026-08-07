@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/quest.dart';
 
 final questsProvider = NotifierProvider<QuestsNotifier, List<Quest>>(() {
@@ -6,8 +8,16 @@ final questsProvider = NotifierProvider<QuestsNotifier, List<Quest>>(() {
 });
 
 class QuestsNotifier extends Notifier<List<Quest>> {
+  static const _storageKey = 'quests';
+  bool _loaded = false;
+
   @override
   List<Quest> build() {
+    _load();
+    return _defaultQuests();
+  }
+
+  List<Quest> _defaultQuests() {
     return [
       const Quest(
         id: 'q1',
@@ -36,9 +46,34 @@ class QuestsNotifier extends Notifier<List<Quest>> {
     ];
   }
 
+  Future<void> _load() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_storageKey);
+      if (raw != null && !_loaded) {
+        _loaded = true;
+        final decoded = jsonDecode(raw) as List<dynamic>;
+        state = decoded
+            .map((e) => Quest.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+    } catch (_) {
+      // Ignore corrupted/missing persisted data and use defaults.
+    }
+  }
+
+  Future<void> _save() async {
+    _loaded = true;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _storageKey,
+      jsonEncode(state.map((q) => q.toJson()).toList()),
+    );
+  }
+
   int updateProgress(double distanceAdded) {
     int totalXpEarned = 0;
-    
+
     state = state.map((quest) {
       if (quest.isCompleted) return quest;
 
@@ -54,6 +89,8 @@ class QuestsNotifier extends Notifier<List<Quest>> {
         isCompleted: completedNow,
       );
     }).toList();
+
+    _save();
 
     return totalXpEarned;
   }

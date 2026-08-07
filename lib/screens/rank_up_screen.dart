@@ -6,6 +6,9 @@ import '../widgets/cyber_button.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/hunter_provider.dart';
 import '../providers/run_provider.dart';
+import '../providers/quests_provider.dart';
+import '../providers/run_logs_provider.dart';
+import '../models/run_log.dart';
 
 class RankUpScreen extends ConsumerWidget {
   const RankUpScreen({super.key});
@@ -14,8 +17,19 @@ class RankUpScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final runSession = ref.watch(runProvider);
     final hunter = ref.watch(hunterProvider);
+    final quests = ref.watch(questsProvider);
     
     int xpEarned = (runSession.currentDistance * 1000).toInt();
+
+    int questBonusPreview = 0;
+    for (final quest in quests) {
+      if (!quest.isCompleted &&
+          quest.currentDistance + runSession.currentDistance >=
+              quest.targetDistance) {
+        questBonusPreview += quest.xpReward;
+      }
+    }
+    int totalXp = xpEarned + questBonusPreview;
     
     final int hours = runSession.elapsedSeconds ~/ 3600;
     final int minutes = (runSession.elapsedSeconds % 3600) ~/ 60;
@@ -235,7 +249,9 @@ class RankUpScreen extends ConsumerWidget {
                         const SizedBox(height: 24),
                         _buildCalculationRow('Base XP = Distance x 1000', '$xpEarned', AppColors.sTierGold),
                         const SizedBox(height: 12),
-                        _buildCalculationRow('Total XP Yield', '$xpEarned XP', AppColors.primaryCyan, isTotal: true),
+                        _buildCalculationRow('Quest Bonus XP', '$questBonusPreview', AppColors.sTierGold),
+                        const SizedBox(height: 12),
+                        _buildCalculationRow('Total XP Yield', '$totalXp XP', AppColors.primaryCyan, isTotal: true),
                       ],
                     ),
                   ),
@@ -285,9 +301,22 @@ class RankUpScreen extends ConsumerWidget {
                     text: 'GO TO HOME',
                     isSuccess: true,
                     onPressed: () {
+                      final questXp = ref
+                          .read(questsProvider.notifier)
+                          .updateProgress(runSession.currentDistance);
                       ref.read(hunterProvider.notifier).addRunStats(
-                        runSession.currentDistance, 
-                        runSession.elapsedSeconds
+                        runSession.currentDistance,
+                        runSession.elapsedSeconds,
+                        bonusXp: questXp,
+                      );
+                      ref.read(runLogsProvider.notifier).addLog(
+                        RunLog(
+                          id: 'LOG_${DateTime.now().millisecondsSinceEpoch}',
+                          timestamp: DateTime.now(),
+                          elapsedSeconds: runSession.elapsedSeconds,
+                          distance: runSession.currentDistance,
+                          xpEarned: xpEarned + questXp,
+                        ),
                       );
                       Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
                     },

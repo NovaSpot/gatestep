@@ -15,6 +15,28 @@ class Quest {
     required this.isCompleted,
   });
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'targetDistance': targetDistance,
+      'currentDistance': currentDistance,
+      'xpReward': xpReward,
+      'isCompleted': isCompleted,
+    };
+  }
+
+  factory Quest.fromJson(Map<String, dynamic> json) {
+    return Quest(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      targetDistance: (json['targetDistance'] as num).toDouble(),
+      currentDistance: (json['currentDistance'] as num).toDouble(),
+      xpReward: json['xpReward'] as int,
+      isCompleted: json['isCompleted'] as bool,
+    );
+  }
+
   Quest copyWith({
     String? id,
     String? title,

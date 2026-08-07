@@ -44,6 +44,40 @@ class HunterProfile {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'codename': codename,
+      'rank': rank,
+      'level': level,
+      'xp': xp,
+      'xpToNextLevel': xpToNextLevel,
+      'totalDistance': totalDistance,
+      'totalTimeSeconds': totalTimeSeconds,
+      'clearedGates': clearedGates,
+      'statPoints': statPoints,
+      'strength': strength,
+      'agility': agility,
+      'vitality': vitality,
+    };
+  }
+
+  factory HunterProfile.fromJson(Map<String, dynamic> json) {
+    return HunterProfile(
+      codename: json['codename'] as String? ?? 'RONAN ABRAHAM',
+      rank: json['rank'] as String? ?? 'E',
+      level: json['level'] as int? ?? 1,
+      xp: json['xp'] as int? ?? 0,
+      xpToNextLevel: json['xpToNextLevel'] as int? ?? 1000,
+      totalDistance: (json['totalDistance'] as num?)?.toDouble() ?? 0.0,
+      totalTimeSeconds: json['totalTimeSeconds'] as int? ?? 0,
+      clearedGates: json['clearedGates'] as int? ?? 0,
+      statPoints: json['statPoints'] as int? ?? 0,
+      strength: json['strength'] as int? ?? 10,
+      agility: json['agility'] as int? ?? 10,
+      vitality: json['vitality'] as int? ?? 10,
+    );
+  }
+
   HunterProfile copyWith({
     String? codename,
     String? rank,

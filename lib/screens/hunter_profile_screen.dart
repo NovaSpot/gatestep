@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_colors.dart';
-import '../widgets/cyber_card.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/hunter_provider.dart';
 
@@ -13,6 +12,7 @@ class HunterProfileScreen extends ConsumerWidget {
     final hunter = ref.watch(hunterProvider);
     double xpProgress = hunter.xp / hunter.xpToNextLevel;
     int hours = hunter.totalTimeSeconds ~/ 3600;
+    int minutes = (hunter.totalTimeSeconds % 3600) ~/ 60;
     
     return SafeArea(
       child: SingleChildScrollView(
@@ -207,7 +207,7 @@ class HunterProfileScreen extends ConsumerWidget {
               children: [
                 Expanded(child: _buildAttributeCard('VIT', hunter.vitality.toString(), 'LVL', Icons.favorite_border, ref, hunter.statPoints > 0)),
                 const SizedBox(width: 16),
-                Expanded(child: Container()), // Empty placeholder for symmetry
+                Expanded(child: _buildAttributeCard('TIME', '$hours:$minutes', 'HRS', Icons.schedule, ref, false)),
               ],
             ),
             const SizedBox(height: 40),

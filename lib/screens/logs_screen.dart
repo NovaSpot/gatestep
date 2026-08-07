@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_colors.dart';
-import '../widgets/cyber_card.dart';
+import '../models/run_log.dart';
+import '../providers/run_logs_provider.dart';
 
-class LogsScreen extends StatelessWidget {
+class LogsScreen extends ConsumerWidget {
   const LogsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final logs = ref.watch(runLogsProvider);
+
     return SafeArea(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -39,37 +43,59 @@ class LogsScreen extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              itemCount: 4,
-              itemBuilder: (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: _buildLogEntry(
-                    id: 'LOG_014${0 - index}',
-                    title: index == 0 ? 'CUSAT to SOE' : 'HMT to CR',
-                    date: '2042.11.22',
-                    time: '30:15',
-                    distance: index == 0 ? '2' : '5',
-                    xp: index == 0 ? '+850' : '+1200',
+            child: logs.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.history,
+                            size: 48, color: AppColors.textSecondary.withAlpha(100)),
+                        const SizedBox(height: 12),
+                        Text(
+                          'NO CLEARINGS YET',
+                          style: GoogleFonts.shareTechMono(
+                            color: AppColors.textSecondary,
+                            fontSize: 14,
+                            letterSpacing: 2,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Complete a run to log it here.',
+                          style: GoogleFonts.shareTechMono(
+                            color: AppColors.textMuted,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    itemCount: logs.length,
+                    itemBuilder: (context, index) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: _buildLogEntry(logs[index]),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildLogEntry({
-    required String id,
-    required String title,
-    required String date,
-    required String time,
-    required String distance,
-    required String xp,
-  }) {
+  Widget _buildLogEntry(RunLog log) {
+    final int hours = log.elapsedSeconds ~/ 3600;
+    final int minutes = (log.elapsedSeconds % 3600) ~/ 60;
+    final int seconds = log.elapsedSeconds % 60;
+    final String timeString =
+        '${hours > 0 ? '$hours:' : ''}${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+
+    final String dateString =
+        '${log.timestamp.year}.${log.timestamp.month.toString().padLeft(2, '0')}.${log.timestamp.day.toString().padLeft(2, '0')}';
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -91,7 +117,7 @@ class LogsScreen extends StatelessWidget {
                 Icon(Icons.public, size: 12, color: AppColors.textSecondary),
                 const SizedBox(width: 6),
                 Text(
-                  id,
+                  log.id,
                   style: GoogleFonts.shareTechMono(
                     color: AppColors.textSecondary,
                     fontSize: 11,
@@ -115,7 +141,7 @@ class LogsScreen extends StatelessWidget {
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    'A',
+                    _tierFor(log.distance),
                     style: GoogleFonts.shareTechMono(
                       color: AppColors.textPrimary,
                       fontSize: 24,
@@ -130,7 +156,7 @@ class LogsScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        title,
+                        'GATE CLEARED',
                         style: GoogleFonts.shareTechMono(
                           color: AppColors.textPrimary,
                           fontSize: 18,
@@ -143,7 +169,7 @@ class LogsScreen extends StatelessWidget {
                           Icon(Icons.calendar_today, size: 12, color: AppColors.textSecondary),
                           const SizedBox(width: 4),
                           Text(
-                            date,
+                            dateString,
                             style: GoogleFonts.shareTechMono(
                               color: AppColors.textSecondary,
                               fontSize: 11,
@@ -153,7 +179,7 @@ class LogsScreen extends StatelessWidget {
                           Icon(Icons.timer_outlined, size: 12, color: AppColors.textSecondary),
                           const SizedBox(width: 4),
                           Text(
-                            time,
+                            timeString,
                             style: GoogleFonts.shareTechMono(
                               color: AppColors.textSecondary,
                               fontSize: 11,
@@ -181,7 +207,7 @@ class LogsScreen extends StatelessWidget {
                                   textBaseline: TextBaseline.alphabetic,
                                   children: [
                                     Text(
-                                      distance,
+                                      log.distance.toStringAsFixed(2),
                                       style: GoogleFonts.shareTechMono(
                                         color: AppColors.textPrimary,
                                         fontSize: 18,
@@ -214,7 +240,7 @@ class LogsScreen extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  xp,
+                                  '+${log.xpEarned}',
                                   style: GoogleFonts.shareTechMono(
                                     color: AppColors.primaryCyan,
                                     fontSize: 18,
@@ -223,14 +249,6 @@ class LogsScreen extends StatelessWidget {
                                 ),
                               ],
                             ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: AppColors.textSecondary.withAlpha(40)),
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                            child: Icon(Icons.keyboard_arrow_down, color: AppColors.textSecondary, size: 20),
                           ),
                         ],
                       ),
@@ -243,5 +261,13 @@ class LogsScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _tierFor(double distance) {
+    if (distance >= 10) return 'S';
+    if (distance >= 7.5) return 'A';
+    if (distance >= 5) return 'B';
+    if (distance >= 3) return 'C';
+    return 'D';
   }
 }
