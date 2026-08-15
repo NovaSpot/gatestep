@@ -6,14 +6,15 @@ distance.
 
 ## Features
 
-- **Run tracking** — live distance, pace, and elapsed time via GPS (`geolocator`)
+- **Run tracking** — live distance, pace, elapsed time, and real-time GPS route polylines on a dark OpenStreetMap (`geolocator`, `flutter_map`)
+- **Interactive route maps** — live tracking map preview and historical route tracks saved for every cleared gate
 - **RPG progression** — XP from distance, level-ups, and a hard-coded rank curve
 - **Tactical attributes** — spend earned stat points on STR / AGI / VIT
 - **Quests** — distance-based objectives that award bonus XP on completion
-- **Hunt archive** — a persistent log of every cleared gate
-- **Persistence** — hunter profile, quests, and run history survive app restarts
-  via `shared_preferences`
+- **Hunt archive** — a persistent log of every cleared gate with saved route map views
+- **Persistence** — hunter profile, quests, route logs, and run history survive app restarts via `shared_preferences`
 - **Cyberpunk UI** — custom dark theme (`share tech mono` via `google_fonts`)
+
 
 ## Getting started
 
