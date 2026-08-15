@@ -316,6 +316,7 @@ class RankUpScreen extends ConsumerWidget {
                           elapsedSeconds: runSession.elapsedSeconds,
                           distance: runSession.currentDistance,
                           xpEarned: xpEarned + questXp,
+                          routePoints: runSession.routePoints,
                         ),
                       );
                       Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);

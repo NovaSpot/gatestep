@@ -9,8 +9,10 @@ final runProvider = NotifierProvider<RunNotifier, RunSession>(() {
 
 class RunNotifier extends Notifier<RunSession> {
   Timer? _timer;
+  Timer? _movingTimer;
   StreamSubscription<Position>? _positionStream;
   Position? _lastPosition;
+  bool _gpsActive = false;
 
   @override
   RunSession build() {
@@ -22,6 +24,7 @@ class RunNotifier extends Notifier<RunSession> {
       targetDistance: targetDistance,
       isActive: true,
       startTime: DateTime.now(),
+      gpsStatus: GpsStatus.syncing,
     );
     
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -41,6 +44,7 @@ class RunNotifier extends Notifier<RunSession> {
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
+      state = state.copyWith(gpsStatus: GpsStatus.disabled);
       return;
     }
 
@@ -48,21 +52,37 @@ class RunNotifier extends Notifier<RunSession> {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
+        state = state.copyWith(gpsStatus: GpsStatus.denied);
         return;
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
+      state = state.copyWith(gpsStatus: GpsStatus.denied);
       return;
     }
+
+    state = state.copyWith(gpsStatus: GpsStatus.synced);
+    _gpsActive = true;
+
+    _movingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (state.isActive && _gpsActive) {
+        state = state.copyWith(
+          movingTimeSeconds: state.movingTimeSeconds + 1,
+        );
+      }
+    });
 
     _positionStream = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
-        distanceFilter: 10, // 10 meters
+        distanceFilter: 5, // 5 meters
       ),
     ).listen((Position position) {
       if (!state.isActive) return;
+
+      final newPoint = {'lat': position.latitude, 'lng': position.longitude};
+      final updatedRoute = [...state.routePoints, newPoint];
 
       if (_lastPosition != null) {
         double distanceInMeters = Geolocator.distanceBetween(
@@ -75,25 +95,32 @@ class RunNotifier extends Notifier<RunSession> {
         double addedDistanceKM = distanceInMeters / 1000;
         double newDistance = state.currentDistance + addedDistanceKM;
 
-        // Calculate pace (minutes per km)
+        // Calculate pace using moving time (seconds per KM)
         double currentPace = 0;
-        if (newDistance > 0) {
-           // pace in seconds per KM
-           currentPace = state.elapsedSeconds / newDistance; 
+        if (newDistance > 0 && state.movingTimeSeconds > 0) {
+           currentPace = state.movingTimeSeconds / newDistance; 
         }
 
         state = state.copyWith(
           currentDistance: newDistance,
           currentPace: currentPace,
+          routePoints: updatedRoute,
+        );
+      } else {
+        state = state.copyWith(
+          routePoints: updatedRoute,
         );
       }
       _lastPosition = position;
     });
+
   }
 
   void stopRun() {
+    _gpsActive = false;
     state = state.copyWith(isActive: false);
     _timer?.cancel();
+    _movingTimer?.cancel();
     _positionStream?.cancel();
     _lastPosition = null;
   }

@@ -9,6 +9,7 @@ final questsProvider = NotifierProvider<QuestsNotifier, List<Quest>>(() {
 
 class QuestsNotifier extends Notifier<List<Quest>> {
   static const _storageKey = 'quests';
+  static const _dateKey = 'quests_last_reset_date';
   bool _loaded = false;
 
   @override
@@ -50,6 +51,16 @@ class QuestsNotifier extends Notifier<List<Quest>> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_storageKey);
+      final lastResetStr = prefs.getString(_dateKey);
+      final today = DateTime.now().toIso8601String().split('T').first;
+
+      bool shouldReset = lastResetStr != today;
+
+      if (shouldReset) {
+        await _resetQuests(prefs);
+        return;
+      }
+
       if (raw != null && !_loaded) {
         _loaded = true;
         final decoded = jsonDecode(raw) as List<dynamic>;
@@ -60,6 +71,14 @@ class QuestsNotifier extends Notifier<List<Quest>> {
     } catch (_) {
       // Ignore corrupted/missing persisted data and use defaults.
     }
+  }
+
+  Future<void> _resetQuests(SharedPreferences prefs) async {
+    final defaults = _defaultQuests();
+    state = defaults;
+    await prefs.setString(_storageKey, jsonEncode(defaults.map((q) => q.toJson()).toList()));
+    await prefs.setString(_dateKey, DateTime.now().toIso8601String().split('T').first);
+    _loaded = true;
   }
 
   Future<void> _save() async {

@@ -7,6 +7,7 @@ import '../widgets/timer_display.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/run_provider.dart';
+import '../models/run_session.dart';
 
 class TrackingScreen extends ConsumerWidget {
   const TrackingScreen({super.key});
@@ -14,14 +15,17 @@ class TrackingScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final runSession = ref.watch(runProvider);
-    
-    // Check completion condition
-    if (runSession.isActive && runSession.currentDistance >= runSession.targetDistance) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+
+    // Listen for run completion
+    ref.listen<RunSession>(runProvider, (previous, next) {
+      if (previous != null && 
+          previous.isActive && 
+          next.isActive && 
+          next.currentDistance >= next.targetDistance) {
         ref.read(runProvider.notifier).stopRun();
         Navigator.pushReplacementNamed(context, '/runComplete');
-      });
-    }
+      }
+    });
 
     final int hours = runSession.elapsedSeconds ~/ 3600;
     final int minutes = (runSession.elapsedSeconds % 3600) ~/ 60;
@@ -29,6 +33,38 @@ class TrackingScreen extends ConsumerWidget {
     
     final paceMins = (runSession.currentPace ~/ 60).toString().padLeft(2, '0');
     final paceSecs = (runSession.currentPace % 60).toInt().toString().padLeft(2, '0');
+
+    // Handle GPS status
+    Color statusColor;
+    String statusText;
+    IconData statusIcon;
+
+    switch (runSession.gpsStatus) {
+      case GpsStatus.syncing:
+        statusColor = AppColors.secondaryCyan;
+        statusText = 'SYNCING...';
+        statusIcon = Icons.gps_not_fixed;
+        break;
+      case GpsStatus.synced:
+        statusColor = AppColors.primaryCyan;
+        statusText = 'SYNCED';
+        statusIcon = Icons.my_location;
+        break;
+      case GpsStatus.denied:
+        statusColor = AppColors.danger;
+        statusText = 'PERMISSION DENIED';
+        statusIcon = Icons.location_off;
+        break;
+      case GpsStatus.disabled:
+        statusColor = AppColors.danger;
+        statusText = 'GPS DISABLED';
+        statusIcon = Icons.gps_off;
+        break;
+      default:
+        statusColor = AppColors.textSecondary;
+        statusText = 'INITIALIZING...';
+        statusIcon = Icons.gps_not_fixed;
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -54,12 +90,12 @@ class TrackingScreen extends ConsumerWidget {
                   ),
                   Row(
                     children: [
-                      const Icon(Icons.my_location, color: AppColors.primaryCyan, size: 16),
+                      Icon(statusIcon, color: statusColor, size: 16),
                       const SizedBox(width: 8),
                       Text(
-                        'SYNCED',
+                        statusText,
                         style: GoogleFonts.shareTechMono(
-                          color: AppColors.primaryCyan,
+                          color: statusColor,
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 1,
@@ -199,9 +235,49 @@ class TrackingScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 24),
+              // GPS error message
+              if (runSession.gpsStatus == GpsStatus.denied || runSession.gpsStatus == GpsStatus.disabled)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.danger.withAlpha(30),
+                    border: Border.all(color: AppColors.danger),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        runSession.gpsStatus == GpsStatus.denied 
+                            ? 'LOCATION PERMISSION REQUIRED' 
+                            : 'ENABLE GPS IN SETTINGS',
+                        style: GoogleFonts.shareTechMono(
+                          color: AppColors.danger,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        runSession.gpsStatus == GpsStatus.denied
+                            ? 'Grant location permission in app settings to track your run.'
+                            : 'Turn on location services in device settings.',
+                        style: GoogleFonts.shareTechMono(
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               // Map preview
-              const Expanded(
-                child: MapPreview(label: 'PREVIEW // TERRITORY'),
+              Expanded(
+                child: MapPreview(
+                  label: 'LIVE // GPS TRACK',
+                  routePoints: runSession.routePoints,
+                ),
               ),
               const SizedBox(height: 24),
               CyberButton(

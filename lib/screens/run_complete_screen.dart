@@ -47,10 +47,11 @@ class RunCompleteScreen extends ConsumerWidget {
                 ],
               ),
             ),
-            const Expanded(
+            Expanded(
               child: MapPreview(
-                label: null,
-                showCoordinates: false,
+                label: 'GATE CLEARED // ROUTE TRACK',
+                showCoordinates: true,
+                routePoints: runSession.routePoints,
               ),
             ),
             Padding(

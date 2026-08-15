@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -9,7 +10,7 @@ final hunterProvider = NotifierProvider<HunterNotifier, HunterProfile>(() {
 
 class HunterNotifier extends Notifier<HunterProfile> {
   static const _storageKey = 'hunter_profile';
-  bool _loaded = false;
+  final Completer<void> _loadCompleter = Completer<void>();
 
   @override
   HunterProfile build() {
@@ -18,21 +19,25 @@ class HunterNotifier extends Notifier<HunterProfile> {
   }
 
   Future<void> _load() async {
+    if (_loadCompleter.isCompleted) return;
+    
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_storageKey);
-      if (raw != null && !_loaded) {
-        _loaded = true;
-        state =
-            HunterProfile.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+      if (raw != null) {
+        state = HunterProfile.fromJson(jsonDecode(raw) as Map<String, dynamic>);
       }
     } catch (_) {
       // Ignore corrupted/missing persisted data and use defaults.
+    } finally {
+      if (!_loadCompleter.isCompleted) {
+        _loadCompleter.complete();
+      }
     }
   }
 
   Future<void> _save() async {
-    _loaded = true;
+    await _loadCompleter.future;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_storageKey, jsonEncode(state.toJson()));
   }

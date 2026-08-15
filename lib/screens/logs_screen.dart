@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_colors.dart';
 import '../models/run_log.dart';
 import '../providers/run_logs_provider.dart';
+import '../widgets/map_preview.dart';
 
 class LogsScreen extends ConsumerWidget {
   const LogsScreen({super.key});
@@ -258,6 +259,16 @@ class LogsScreen extends ConsumerWidget {
               ],
             ),
           ),
+          if (log.routePoints.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+              child: MapPreview(
+                label: 'TRACK LOG // CLEARED ROUTE',
+                height: 140,
+                routePoints: log.routePoints,
+              ),
+            ),
+          ],
         ],
       ),
     );

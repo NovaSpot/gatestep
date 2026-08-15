@@ -7,9 +7,14 @@ import 'package:gatestep/providers/hunter_provider.dart';
 import 'package:gatestep/providers/quests_provider.dart';
 import 'package:gatestep/providers/run_logs_provider.dart';
 
+final mayRunTimestamp = DateTime(2042, 11, 22);
+final _todayStr = DateTime.now().toIso8601String().split('T').first;
+
 void main() {
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({
+      'quests_last_reset_date': _todayStr,
+    });
   });
 
   test('hunter profile persists across provider recreation', () async {
@@ -55,6 +60,10 @@ void main() {
           elapsedSeconds: 600,
           distance: 5.0,
           xpEarned: 5000,
+          routePoints: [
+            {'lat': 35.6762, 'lng': 139.6503},
+            {'lat': 35.6770, 'lng': 139.6510},
+          ],
         ));
     await Future<void>.delayed(const Duration(milliseconds: 100));
 
@@ -68,7 +77,7 @@ void main() {
     expect(loaded.first.id, 'LOG_1');
     expect(loaded.first.distance, 5.0);
     expect(loaded.first.xpEarned, 5000);
+    expect(loaded.first.routePoints.length, 2);
+    expect(loaded.first.routePoints.first['lat'], 35.6762);
   });
 }
-
-final mayRunTimestamp = DateTime(2042, 11, 22);
